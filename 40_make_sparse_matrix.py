@@ -24,7 +24,7 @@ for TYPE in ['test', 'train']:
             mindex = movie_index[str(movieId)]
             #print(uindex, mindex, score)
             X.append([uindex, mindex, score])
-        if masterIndex > 100000:
+        if masterIndex > 10000:
             break
     print('try to compress')
     pickle.dump(X, open(

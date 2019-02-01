@@ -73,7 +73,7 @@ def myLoss(output, target):
 def generate():
     train_triples = pickle.load(open('works/dataset/train_triples.pkl', 'rb'))
 
-    BATCH = 4
+    BATCH = 32
     for i in range(0, len(train_triples), BATCH):
         array = np.array(train_triples[i:i+BATCH])
         uindex = array[:, 0]
@@ -81,25 +81,34 @@ def generate():
         scores = array[:, 2]
         yield uindex, mindex, scores
 
-
-def get_val():
+import statistics
+def validate(model, device):
     test_triples = pickle.load(open('works/dataset/test_triples.pkl', 'rb'))
 
     array = np.array(test_triples)
-    uindex = array[:, 0]
-    mindex = array[:, 1]
-    scores = array[:, 2]
-    inputs = [
-          Variable(torch.from_numpy(mindex)).long(),
-          Variable(torch.from_numpy(uindex)).long(),
-          ]
-    scores= Variable(torch.from_numpy(
-            scores)).float()
-    return inputs, scores
+
+    model.to(device)
+
+    losses = []
+    for i in range(0, array.shape[0], 1000 ):
+      uindex = array[i:i+100, 0]
+      mindex = array[i:i+100, 1] 
+      scores = array[i:i+100, 2]
+      inputs = [
+            Variable(torch.from_numpy(mindex)).long().to(device),
+            Variable(torch.from_numpy(uindex)).long().to(device),
+            ]
+      scores= Variable(torch.from_numpy(
+              scores)).float().to(device)
+      loss= myLoss(scores, model.to(device)(inputs))
+      losses.append(float(loss.data.cpu().numpy()))
+      del inputs
+    print( statistics.mean(losses) )
+    model.to(device)
 
 if __name__ == '__main__':
 
-    device= 'cpu'
+    device= 'cuda'
     movie_index= json.load(open('./works/defs/smovie_index.json'))
     user_index= json.load(open('./works/defs/user_index.json'))
     print('user size', len(user_index), 'item size', len(movie_index))
@@ -122,11 +131,6 @@ if __name__ == '__main__':
         optimizer.step()
 
         if index % 100 == 0:
-            inputs, score = get_val()
-            model.to('cpu')
-            loss= myLoss(scores, model(inputs))
-            print(loss.data.cpu().numpy())
-            del inputs
-            model.to(device)
+           validate(model, device)
 
         # torch.save(model.state_dict(), f'conv_autoencoder_{epoch:04d}.pth')
