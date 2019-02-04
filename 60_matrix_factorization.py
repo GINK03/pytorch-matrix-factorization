@@ -1,3 +1,4 @@
+import statistics
 import glob
 import math
 import pickle
@@ -18,15 +19,15 @@ class MF(nn.Module):
 
         self.l_b1 = nn.Embedding(num_embeddings=input_items, embedding_dim=512)
         self.l_b2 = nn.Linear(
-            in_features=512, out_features=512, bias=True)
-        self.l_b3 = nn.Linear(
-            in_features=512, out_features=512, bias=True)
+            in_features=512, out_features=32, bias=True)
+        # self.l_b3 = nn.Linear(
+        #    in_features=512, out_features=512, bias=True)
 
         self.l_a1 = nn.Embedding(num_embeddings=input_users, embedding_dim=512)
         self.l_a2 = nn.Linear(
-            in_features=512, out_features=512, bias=True)
-        self.l_a3 = nn.Linear(
-            in_features=512, out_features=512, bias=True)
+            in_features=512, out_features=32, bias=True)
+        # self.l_a3 = nn.Linear(
+        #    in_features=512, out_features=512, bias=True)
 
         self.l_l1 = nn.Linear(
             in_features=512, out_features=1, bias=True)
@@ -34,19 +35,19 @@ class MF(nn.Module):
     def encode_item(self, x):
         x = F.relu(self.l_b1(x))
         x = F.relu(self.l_b2(x))
-        x = F.relu(self.l_b3(x))
+        #x = F.relu(self.l_b3(x))
         return x
 
     def encode_user(self, x):
         x = F.relu(self.l_a1(x))
         x = F.relu(self.l_a2(x))
-        x = F.relu(self.l_a3(x))
+        #x = F.relu(self.l_a3(x))
         return x
 
     def decode(self, x):
         x = F.relu(self.l4(x))
         x = F.relu(self.l5(x))
-        x = F.relu(self.l6(x))
+        #x = F.relu(self.l6(x))
         return x
 
     def forward(self, inputs):
@@ -55,15 +56,13 @@ class MF(nn.Module):
         batch_size = list(item_vec.size())[0]
 
         user_vec = self.encode_user(user_vec)
-        # print(user_vec.size())
-        # doted = torch.bmm(user_vec,
-        #                  item_vec)
+        doted = torch.bmm(user_vec.view(batch_size, 1, 32),
+                          item_vec.view(batch_size, 32, 1))
+        return doted
+        #return doted.view(batch_size)
+
+
         # print(doted.size())
-        x = self.l_l1(user_vec)
-        # exit()
-        return x
-
-
 def myLoss(output, target):
     # loss = nn.MSELoss()(output, target)
     loss = torch.sqrt(torch.mean((output-target)**2))
@@ -81,7 +80,7 @@ def generate():
         scores = array[:, 2]
         yield uindex, mindex, scores
 
-import statistics
+
 def validate(model, device):
     test_triples = pickle.load(open('works/dataset/test_triples.pkl', 'rb'))
 
@@ -90,47 +89,48 @@ def validate(model, device):
     model.to(device)
 
     losses = []
-    for i in range(0, array.shape[0], 1000 ):
-      uindex = array[i:i+100, 0]
-      mindex = array[i:i+100, 1] 
-      scores = array[i:i+100, 2]
-      inputs = [
+    for i in range(0, array.shape[0], 100):
+        uindex = array[i:i+100, 0]
+        mindex = array[i:i+100, 1]
+        scores = array[i:i+100, 2]
+        inputs = [
             Variable(torch.from_numpy(mindex)).long().to(device),
             Variable(torch.from_numpy(uindex)).long().to(device),
-            ]
-      scores= Variable(torch.from_numpy(
-              scores)).float().to(device)
-      loss= myLoss(scores, model.to(device)(inputs))
-      losses.append(float(loss.data.cpu().numpy()))
-      del inputs
-    print( statistics.mean(losses) )
+        ]
+        scores = Variable(torch.from_numpy(
+            scores)).float().to(device)
+        loss = myLoss(scores, model.to(device)(inputs))
+        losses.append(float(loss.data.cpu().numpy()))
+        del inputs
+    print(statistics.mean(losses))
     model.to(device)
+
 
 if __name__ == '__main__':
 
-    device= 'cuda'
-    movie_index= json.load(open('./works/defs/smovie_index.json'))
-    user_index= json.load(open('./works/defs/user_index.json'))
+    device = 'cuda'
+    movie_index = json.load(open('./works/defs/smovie_index.json'))
+    user_index = json.load(open('./works/defs/user_index.json'))
     print('user size', len(user_index), 'item size', len(movie_index))
-    model= MF(len(movie_index), len(user_index)).to(device)
-    optimizer= torch.optim.Adam(model.parameters(), lr=0.001)
+    model = MF(len(movie_index), len(user_index)).to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
     for index, (uindex, mindex, scores) in enumerate(generate()):
-        uindex_t= Variable(torch.from_numpy(
+        uindex_t = Variable(torch.from_numpy(
             uindex)).long().to(device)
-        mindex_t= Variable(torch.from_numpy(
+        mindex_t = Variable(torch.from_numpy(
             mindex)).long().to(device)
-        predict= model([mindex_t, uindex_t])
+        predict = model([mindex_t, uindex_t])
 
-        scores= Variable(torch.from_numpy(
+        scores = Variable(torch.from_numpy(
             scores)).float().to(device)
 
-        loss= myLoss(predict, scores)
+        loss = nn.MSELoss()(predict, scores)
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
-        if index % 100 == 0:
-           validate(model, device)
+        if index % 500 == 0:
+            validate(model, device)
 
         # torch.save(model.state_dict(), f'conv_autoencoder_{epoch:04d}.pth')
