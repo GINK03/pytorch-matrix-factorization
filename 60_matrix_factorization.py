@@ -14,17 +14,21 @@ import torch.nn.functional as F
 class MF(nn.Module):
     def __init__(self, input_items, input_users):
         super(MF, self).__init__()
+        print('item size', input_items)
 
         self.l_b1 = nn.Embedding(num_embeddings=input_items, embedding_dim=512)
         self.l_b2 = nn.Linear(
             in_features=512, out_features=512, bias=True)
         self.l_b3 = nn.Linear(
-            in_features=512, out_features=1, bias=True)
+            in_features=512, out_features=512, bias=True)
 
         self.l_a1 = nn.Embedding(num_embeddings=input_users, embedding_dim=512)
         self.l_a2 = nn.Linear(
             in_features=512, out_features=512, bias=True)
         self.l_a3 = nn.Linear(
+            in_features=512, out_features=512, bias=True)
+
+        self.l_l1 = nn.Linear(
             in_features=512, out_features=1, bias=True)
 
     def encode_item(self, x):
@@ -52,12 +56,12 @@ class MF(nn.Module):
 
         user_vec = self.encode_user(user_vec)
         # print(user_vec.size())
-        doted = torch.bmm(user_vec.view(batch_size, 1, 1),
-                          item_vec.view(batch_size, 1, 17770))
-        doted = doted.view(batch_size, 17770)
-        print(doted.size())
+        # doted = torch.bmm(user_vec,
+        #                  item_vec)
+        # print(doted.size())
+        x = self.l_l1(user_vec)
         # exit()
-        return doted
+        return x
 
 
 def myLoss(output, target):
@@ -67,43 +71,62 @@ def myLoss(output, target):
 
 
 def generate():
-    train_movies = pickle.load(open('works/dataset/train_movies.pkl', 'rb'))
-    train_users = pickle.load(open('works/dataset/train_users.pkl', 'rb'))
-    print(train_users.shape)
+    train_triples = pickle.load(open('works/dataset/train_triples.pkl', 'rb'))
 
     BATCH = 4
-    for i in range(0, train_users.shape[0], BATCH):
-        yield (train_movies[i:i+BATCH], train_users[i:i+BATCH])
+    for i in range(0, len(train_triples), BATCH):
+        array = np.array(train_triples[i:i+BATCH])
+        uindex = array[:, 0]
+        mindex = array[:, 1]
+        scores = array[:, 2]
+        yield uindex, mindex, scores
 
+
+def get_val():
+    test_triples = pickle.load(open('works/dataset/test_triples.pkl', 'rb'))
+
+    array = np.array(test_triples)
+    uindex = array[:, 0]
+    mindex = array[:, 1]
+    scores = array[:, 2]
+    inputs = [
+          Variable(torch.from_numpy(mindex)).long(),
+          Variable(torch.from_numpy(uindex)).long(),
+          ]
+    scores= Variable(torch.from_numpy(
+            scores)).float()
+    return inputs, scores
 
 if __name__ == '__main__':
-    movie_index = json.load(open('./works/defs/smovie_index.json'))
-    user_index = json.load(open('./works/defs/user_index.json'))
-    print(len(user_index))
-    model = MF(len(movie_index), len(user_index)).to('cuda')
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
-    for index, (train_movies, train_users) in enumerate(generate()):
-        print(train_movies.shape)
-        print(train_users.shape)
-        inputs_movie = Variable(torch.from_numpy(
-            train_movies.todense())).float().cuda()
-        inputs_user = Variable(torch.from_numpy(
-            train_users.todense())).float().cuda()
-        predict = model([inputs_movie, inputs_user])
+    device= 'cpu'
+    movie_index= json.load(open('./works/defs/smovie_index.json'))
+    user_index= json.load(open('./works/defs/user_index.json'))
+    print('user size', len(user_index), 'item size', len(movie_index))
+    model= MF(len(movie_index), len(user_index)).to(device)
+    optimizer= torch.optim.Adam(model.parameters(), lr=0.001)
 
-        loss = myLoss(predict, inputs_movie)
+    for index, (uindex, mindex, scores) in enumerate(generate()):
+        uindex_t= Variable(torch.from_numpy(
+            uindex)).long().to(device)
+        mindex_t= Variable(torch.from_numpy(
+            mindex)).long().to(device)
+        predict= model([mindex_t, uindex_t])
+
+        scores= Variable(torch.from_numpy(
+            scores)).float().to(device)
+
+        loss= myLoss(predict, scores)
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        '''
+
         if index % 100 == 0:
-            inputs = Variable(torch.from_numpy(
-                testData)).float()
+            inputs, score = get_val()
             model.to('cpu')
-            loss = myLoss(inputs, model(inputs))
-            print(math.sqrt(loss.data.cpu().numpy()))
+            loss= myLoss(scores, model(inputs))
+            print(loss.data.cpu().numpy())
             del inputs
-            model.to('cuda')
-        '''
-        #torch.save(model.state_dict(), f'conv_autoencoder_{epoch:04d}.pth')
+            model.to(device)
+
+        # torch.save(model.state_dict(), f'conv_autoencoder_{epoch:04d}.pth')
