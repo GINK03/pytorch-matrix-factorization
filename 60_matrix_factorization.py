@@ -49,7 +49,7 @@ class MF(nn.Module):
     def forward(self, item, user):
         item_vec = self.encode(item)
         user_vec = self.encode(user)
-        doted    = item_vec.dot(user_vec)
+        doted = item_vec.dot(user_vec)
         print(doted.size())
         return doted
 
@@ -59,34 +59,35 @@ def myLoss(output, target):
     loss = torch.sqrt(torch.mean((output-target)**2))
     return loss
 
+def generate():
+  train_movies = pickle.load(open('works/dataset/train_movies.pkl', 'rb')).todense()
+  train_users  = pickle.load(open('works/dataset/train_users.pkl', 'rb')).todense() 
+  
+  for i in range(0, len(train_users), step=32):
+    yield (train_movies[i:i+32], train_users[i:i+32])
 
 if __name__ == '__main__':
     movie_index = json.load(open('./works/defs/smovie_index.json'))
     model = MF(len(movie_index)).to('cuda')
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
-    
-    '''
-    testData = pickle.load(open('works/dataset/test_01.pkl', 'rb')).todense()
-    for epoch in range(12):
-        for fnTrain in glob.glob(f'works/dataset/train_*.pkl'):
-            trainData = pickle.load(open(fnTrain, 'rb'))
-            height, width = trainData.shape
-            for index, miniTrain in enumerate(np.array_split(trainData.todense(), height//128)):
-                #print('miniTrain', fnTrain, index)
-                inputs = Variable(torch.from_numpy(miniTrain)).float().cuda()
-                predict = model(inputs)
-                loss = myLoss(predict, inputs)
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
-                if index % 100 == 0:
-                    inputs = Variable(torch.from_numpy(
-                        testData)).float()
-                    model.to('cpu')
-                    loss = myLoss(inputs, model(inputs))
-                    print(math.sqrt(loss.data.cpu().numpy()))
-                    del inputs
-                    model.to('cuda')
-        torch.save(model.state_dict(), f'conv_autoencoder_{epoch:04d}.pth')
-    '''
+    for index, (train_movies, train_users) in generate():
+        inputs_movie = Variable(torch.from_numpy(train_movies)).float().cuda()
+        inputs_user = Variable(torch.from_numpy(train_users)).float().cuda()
+        predict = model([inputs_movie, inputs_user])
+
+        loss = myLoss(predict, inputs_movie)
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        '''
+        if index % 100 == 0:
+            inputs = Variable(torch.from_numpy(
+                testData)).float()
+            model.to('cpu')
+            loss = myLoss(inputs, model(inputs))
+            print(math.sqrt(loss.data.cpu().numpy()))
+            del inputs
+            model.to('cuda')
+        '''
+        #torch.save(model.state_dict(), f'conv_autoencoder_{epoch:04d}.pth')
