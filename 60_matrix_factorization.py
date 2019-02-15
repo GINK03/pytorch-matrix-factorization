@@ -19,13 +19,13 @@ class MF(nn.Module):
 
         self.l_b1 = nn.Embedding(num_embeddings=input_items, embedding_dim=512)
         self.l_b2 = nn.Linear(
-            in_features=512, out_features=32, bias=True)
+            in_features=512, out_features=100, bias=True)
         # self.l_b3 = nn.Linear(
         #    in_features=512, out_features=512, bias=True)
 
         self.l_a1 = nn.Embedding(num_embeddings=input_users, embedding_dim=512)
         self.l_a2 = nn.Linear(
-            in_features=512, out_features=32, bias=True)
+            in_features=512, out_features=100, bias=True)
         # self.l_a3 = nn.Linear(
         #    in_features=512, out_features=512, bias=True)
 
@@ -56,13 +56,11 @@ class MF(nn.Module):
         batch_size = list(item_vec.size())[0]
 
         user_vec = self.encode_user(user_vec)
-        doted = torch.bmm(user_vec.view(batch_size, 1, 32),
-                          item_vec.view(batch_size, 32, 1))
-        return doted
-        #return doted.view(batch_size)
+        #doted = torch.bmm(user_vec.view(batch_size, 1, 100),
+        #                  item_vec.view(batch_size, 100, 1))
+        return (user_vec * item_vec).sum(1)
 
 
-        # print(doted.size())
 def myLoss(output, target):
     # loss = nn.MSELoss()(output, target)
     loss = torch.sqrt(torch.mean((output-target)**2))
@@ -81,13 +79,10 @@ def generate():
         yield uindex, mindex, scores
 
 
+test_triples = pickle.load(open('works/dataset/test_triples.pkl', 'rb'))
 def validate(model, device):
-    test_triples = pickle.load(open('works/dataset/test_triples.pkl', 'rb'))
-
     array = np.array(test_triples)
-
     model.to(device)
-
     losses = []
     for i in range(0, array.shape[0], 100):
         uindex = array[i:i+100, 0]
