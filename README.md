@@ -5,7 +5,10 @@
 <div align="center">
   <img width="100%" src="https://user-images.githubusercontent.com/4949982/52837133-f0397780-3130-11e9-82f9-a9fda4764063.png">
 </div>
-
+一つのデータセットの粒度は、下図のようにEmbedding Layerで整数値をEmbeddingしたあと、内積を計算して映画の評価点を予想する。  
+<div align="center">
+  <img width="100%" src="https://user-images.githubusercontent.com/4949982/52838383-d9495400-3135-11e9-9385-f0ff2aefad6c.png">
+</div>
 
 ## PyTorchでの実装
 
