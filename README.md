@@ -1,6 +1,11 @@
 # PyTorchでMatrix Factorization
 
 ## Matrix Factorization
+気持ちはこうで、実際にはすべてを同一に最適化できないので、ミニバッチを切り出して順次学習していく
+<div align="center">
+  <img width="100%" src="https://user-images.githubusercontent.com/4949982/52837133-f0397780-3130-11e9-82f9-a9fda4764063.png">
+</div>
+
 
 ## PyTorchでの実装
 
