@@ -63,6 +63,8 @@ class MF(nn.Module):
 
 ## データ・セット
  - [NetFlix Prize](http://academictorrents.com/details/9b13183dc4d60676b773c9e2cd6de5e5542cee9a)
+ 
+ (アカデミックのBitTorrent経由でダウンロードできる)
 
 
 ## 前処理と学習
