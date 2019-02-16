@@ -20,6 +20,11 @@ Pytorchで実装を行い、簡単に性能をそれなりに出せたので忘�
 厳密なMatrix Factrizationでの定義であるところのコサイン類似度を計算して、UserとItemの近さを出してもよいが、せっかくDeepLearningフレームワークを利用するので、内積ではなく別のベクトルの結合方法を行うことができ、その上の全結合を利用することもできる。  
 そして、実際に性能が良いようである[2]。  
 
+<div align="center">
+  <img width="300px" src="https://user-images.githubusercontent.com/4949982/52899308-e9435f80-322b-11e9-8152-b64cf220ef1d.png">
+  <div> Denseをすべて消しても動作するけど、性能が改善するのでネットワークを深くしている </div>
+</div>
+
 Pytorchでネットワークの定義をこのようにしてみた。
 ```python
 class MF(nn.Module):
