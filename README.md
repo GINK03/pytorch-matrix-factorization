@@ -17,9 +17,44 @@ Pytorchで実装を行い、簡単に性能をそれなりに出せたので忘�
 </div>
 
 ## 具体的な実装
-厳密なMatrix Factrizationでの定義であるところのコサイン類似度を計算して、UserとItemの近さを出してもよいが、せっかくDeepLearningフレームワークを利用するので、内積ではなく、全結合を利用することもできる。  
+厳密なMatrix Factrizationでの定義であるところのコサイン類似度を計算して、UserとItemの近さを出してもよいが、せっかくDeepLearningフレームワークを利用するので、内積ではなく別のベクトルの結合方法を行うことができ、その上の全結合を利用することもできる。  
+そして、実際に性能が良いようである[2]。  
 
-そして、実際に性能が良いようである。  
+Pytorchでネットワークの定義をこのようにしてみた。
+```python
+class MF(nn.Module):
+    def __init__(self, input_items, input_users):
+        super(MF, self).__init__()
+        print('item size', input_items)
+
+        self.l_b1 = nn.Embedding(num_embeddings=input_items, embedding_dim=768)
+        self.l_b2 = nn.Linear(
+            in_features=768, out_features=512, bias=True)
+
+        self.l_a1 = nn.Embedding(num_embeddings=input_users, embedding_dim=768)
+        self.l_a2 = nn.Linear(
+            in_features=768, out_features=512, bias=True)
+
+        self.l_l1 = nn.Linear(
+            in_features=512, out_features=1, bias=True)
+
+    def encode_item(self, x):
+        x = self.l_b1(x)
+        x = F.relu(self.l_b2(x))
+        return x
+
+    def encode_user(self, x):
+        x = self.l_a1(x)
+        x = F.relu(self.l_a2(x))
+        return x
+
+
+    def forward(self, inputs):
+        item_vec, user_vec = inputs
+        item_vec = self.encode_item(item_vec)
+        user_vec = self.encode_user(user_vec)
+        return F.relu(self.l_l1(user_vec * item_vec))
+```
 
 ## データ・セット
  - [NetFlix Prize](http://academictorrents.com/details/9b13183dc4d60676b773c9e2cd6de5e5542cee9a)
