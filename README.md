@@ -1,4 +1,4 @@
-# PyTorchでMatrix Factorization
+# PyTorchでより深いMatrix Factorization
 
 10年前のNetflix Prizeで確立された（？）、Matrix Factrizationは多くの場合、SVDというアルゴリズムで解くことができるが、ロジックと数式をぼんやりと見ていたら、Deep Learningでもできるっぽいなと思った。  
 
