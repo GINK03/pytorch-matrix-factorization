@@ -82,6 +82,9 @@ $ python3 40_make_sparse_matrix.py
 $ python3 60_matrix_factorization.py
 ```
 
+## コード
+ - https://github.com/GINK03/pytorch-matrix-factorization
+
 ## 結果
 NetFlix Prizeのロスは0.8前後なのでここまでは下がらないけど、シンプルなモデルでそここそこの結果を出せる。  
 
