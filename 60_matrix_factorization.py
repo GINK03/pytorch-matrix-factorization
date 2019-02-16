@@ -17,38 +17,27 @@ class MF(nn.Module):
         super(MF, self).__init__()
         print('item size', input_items)
 
-        self.l_b1 = nn.Embedding(num_embeddings=input_items, embedding_dim=512)
+        self.l_b1 = nn.Embedding(num_embeddings=input_items, embedding_dim=768)
         self.l_b2 = nn.Linear(
-            in_features=512, out_features=100, bias=True)
-        # self.l_b3 = nn.Linear(
-        #    in_features=512, out_features=512, bias=True)
+            in_features=768, out_features=512, bias=True)
 
-        self.l_a1 = nn.Embedding(num_embeddings=input_users, embedding_dim=512)
+        self.l_a1 = nn.Embedding(num_embeddings=input_users, embedding_dim=768)
         self.l_a2 = nn.Linear(
-            in_features=512, out_features=100, bias=True)
-        # self.l_a3 = nn.Linear(
-        #    in_features=512, out_features=512, bias=True)
+            in_features=768, out_features=512, bias=True)
 
         self.l_l1 = nn.Linear(
             in_features=512, out_features=1, bias=True)
 
     def encode_item(self, x):
-        x = F.relu(self.l_b1(x))
+        x = self.l_b1(x)
         x = F.relu(self.l_b2(x))
-        #x = F.relu(self.l_b3(x))
         return x
 
     def encode_user(self, x):
-        x = F.relu(self.l_a1(x))
+        x = self.l_a1(x)
         x = F.relu(self.l_a2(x))
-        #x = F.relu(self.l_a3(x))
         return x
 
-    def decode(self, x):
-        x = F.relu(self.l4(x))
-        x = F.relu(self.l5(x))
-        #x = F.relu(self.l6(x))
-        return x
 
     def forward(self, inputs):
         item_vec, user_vec = inputs
@@ -56,13 +45,12 @@ class MF(nn.Module):
         batch_size = list(item_vec.size())[0]
 
         user_vec = self.encode_user(user_vec)
-        #doted = torch.bmm(user_vec.view(batch_size, 1, 100),
+        # doted = torch.bmm(user_vec.view(batch_size, 1, 100),
         #                  item_vec.view(batch_size, 100, 1))
-        return (user_vec * item_vec).sum(1)
+        return F.relu(self.l_l1(user_vec * item_vec))
 
 
 def myLoss(output, target):
-    # loss = nn.MSELoss()(output, target)
     loss = torch.sqrt(torch.mean((output-target)**2))
     return loss
 
@@ -97,7 +85,7 @@ def validate(model, device):
         loss = myLoss(scores, model.to(device)(inputs))
         losses.append(float(loss.data.cpu().numpy()))
         del inputs
-    print(statistics.mean(losses))
+    print('rmse', statistics.mean(losses))
     model.to(device)
 
 
@@ -108,7 +96,7 @@ if __name__ == '__main__':
     user_index = json.load(open('./works/defs/user_index.json'))
     print('user size', len(user_index), 'item size', len(movie_index))
     model = MF(len(movie_index), len(user_index)).to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
 
     for index, (uindex, mindex, scores) in enumerate(generate()):
         uindex_t = Variable(torch.from_numpy(
