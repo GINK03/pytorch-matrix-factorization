@@ -1,5 +1,11 @@
 # PyTorchでMatrix Factorization
 
+10年前のNetflix Prizeで確立された（？）、Matrix Factrizationは多くの場合、SVDというアルゴリズムで解くことができるが、ロジックと数式をぼんやりと見ていたら、Deep Learningでもできるっぽいなと思った。  
+
+ググると、Pytorchでの実装をここなっている人[1], Kerasでの実装を行っている人[2]を見つけることができた。[2]によると、内積を計算することを最終目標とするのであるが、どうやらその内部は非線形であってもいいらしく、表現力を高めるような深いネットワークの構成でも性能がでるようである。  
+
+Pytorchで実装を行い、簡単に性能をそれなりに出せたので忘備録として残しておく。  
+
 ## Matrix Factorization
 気持ちはこうで、実際にはすべてを同一に最適化できないので、ミニバッチを切り出して順次学習していく
 <div align="center">
@@ -10,10 +16,10 @@
   <img width="100%" src="https://user-images.githubusercontent.com/4949982/52838383-d9495400-3135-11e9-9385-f0ff2aefad6c.png">
 </div>
 
-## PyTorchでの実装
+## 具体的な実装
+厳密なMatrix Factrizationでの定義であるところのコサイン類似度を計算して、UserとItemの近さを出してもよいが、せっかくDeepLearningフレームワークを利用するので、内積ではなく、全結合を利用することもできる。  
 
-## 他のフレームワークでの実装
- - [DEEP BEERS: Playing with Deep Recommendation Engines Using Keras](https://medium.com/data-from-the-trenches/deep-beers-playing-with-deep-recommendation-engines-using-keras-part-1-1efc4779568f)
+そして、実際に性能が良いようである。  
 
 ## データ・セット
  - [NetFlix Prize](http://academictorrents.com/details/9b13183dc4d60676b773c9e2cd6de5e5542cee9a)
@@ -67,3 +73,7 @@ rmse 1.3063188623813087
 ...
 rmse 1.080400405348696
 ```
+
+## 参考
+ - [1][PyTorchでもMatrix Factorizationがしたい！](https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=1&cad=rja&uact=8&ved=2ahUKEwiU-dHIjsDgAhWSFYgKHS8xBlwQFjAAegQIChAB&url=https%3A%2F%2Ftakuti.me%2Fnote%2Fpytorch-mf%2F&usg=AOvVaw3daJmWblCK3v9ksv0DEpAA)
+ - [2][DEEP BEERS: Playing with Deep Recommendation Engines Using Keras](https://medium.com/data-from-the-trenches/deep-beers-playing-with-deep-recommendation-engines-using-keras-part-1-1efc4779568f)
